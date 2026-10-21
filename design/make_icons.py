@@ -86,10 +86,13 @@ def g_foodguide(d, c):
     line(d, pts, c, w=int(W * 0.7))
 
 def g_vacationguru(d, c):
-    # paper plane
-    line(d, [(0.22, 0.47), (0.78, 0.25), (0.62, 0.76), (0.49, 0.56), (0.22, 0.47)], c)
-    line(d, [(0.49, 0.56), (0.78, 0.25)], c)
-    line(d, [(0.49, 0.56), (0.47, 0.70)], c)
+    # suitcase with handle, two straps and wheels
+    rrect(d, (0.25, 0.36, 0.75, 0.72), 0.06, c)
+    rrect(d, (0.40, 0.25, 0.60, 0.36), 0.04, c, w=int(W * 0.8))
+    line(d, [(0.39, 0.42), (0.39, 0.66)], c, w=int(W * 0.8))
+    line(d, [(0.61, 0.42), (0.61, 0.66)], c, w=int(W * 0.8))
+    circle(d, 0.34, 0.785, 0.035, c, w=0, fill=c)
+    circle(d, 0.66, 0.785, 0.035, c, w=0, fill=c)
 
 def g_novelreader(d, c):
     # open book
