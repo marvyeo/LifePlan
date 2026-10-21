@@ -345,8 +345,10 @@ async function start() {
 function pickMissing() {
   const missing = SOURCES.filter(s => state.sources[s.app]?.status === 'missing');
   gapi.load('picker', () => {
-    const view = new google.picker.DocsView(google.picker.ViewId.DOCS).setMode(google.picker.DocsViewMode.LIST).setQuery(missing.map(s => s.file).join(' OR '));
-    new google.picker.PickerBuilder().addView(view).enableFeature(google.picker.Feature.MULTISELECT_ENABLED).setTitle('Pick the missing app files')
+    // Only JSON files; if exactly one is missing, pre-search its name
+    const view = new google.picker.DocsView(google.picker.ViewId.DOCS).setMode(google.picker.DocsViewMode.LIST).setMimeTypes('application/json');
+    if (missing.length === 1) view.setQuery(missing[0].file);
+    new google.picker.PickerBuilder().addView(view).enableFeature(google.picker.Feature.MULTISELECT_ENABLED).setTitle('Pick: ' + missing.map(m => m.file).join(', '))
       .setOAuthToken(accessToken).setDeveloperKey(PICKER_API_KEY).setAppId(GCP_APP_ID)
       .setCallback(d => {
         if (d.action !== google.picker.Action.PICKED) return;

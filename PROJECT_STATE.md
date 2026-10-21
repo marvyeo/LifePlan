@@ -29,9 +29,12 @@ File lookup: id remembered per device, else newest file by name. "Pick missing f
 - App filter chips (remembered). Sources panel shows item count, last saved, and a **stale** warning after 7 days, since `upcoming[]` only refreshes when an app saves.
 - Last good result cached in localStorage; auto-refresh on return after 10 minutes.
 
+## Known: two apps use other Google Cloud projects
+TV World (client `678456232174-…`) and MCC Inventory (client `676510183503-…`, full `drive` scope) aren't on the shared client, so under `drive.file` Life Plan can't find their files by name. Fix: **Pick missing files** once. The grant is stored with the Google account and works on every device. Moving those apps to the shared client isn't worth it, because they'd lose sight of their own existing files.
+
 ## Open items
 - [ ] Marvin: enable Pages; add `https://marvyeo.github.io/LifePlan/` to Authorized redirect URIs (for iPhone).
-- [ ] Report back: did `drive.file` see all 5 files, or were "Pick missing files" or read-only access needed?
+- [x] First run 2026-10-21: TV World and MCC Inventory not found (different OAuth projects). Resolution: Pick missing files.
 
 ## Change log
 - **v1.0 (2026-10-21):** Initial build (Sprint 7).
