@@ -38,3 +38,6 @@ TV World (client `678456232174-…`) and MCC Inventory (client `676510183503-…
 
 ## Change log
 - **v1.0 (2026-10-21):** Initial build (Sprint 7).
+
+## Ecosystem icon set (2026-10-21)
+`design/make_icons.py` generates every app's icon in one style (dark tile, line glyph in the app colour, same stroke and safe zone). `python3 design/make_icons.py out` writes `out/<app>/icon-192.png`, `icon-512.png`, `apple-touch-icon.png` and `out/preview.png`. To add an app: add it to `APPS` (name, colour) and write a `g_<app>` glyph function.
