@@ -313,10 +313,15 @@ async function loadSource(src) {
   try {
     const f = await findFile(src);
     if (!f) { state.sources[src.app] = { status: 'missing' }; return []; }
+    const modified = Date.parse(f.modifiedTime);
+    const prev = state.sources[src.app];
+    if (prev && prev.status === 'ok' && prev.modified === modified && prev.fileId === f.id) {
+      return (state.items || []).filter(i => i.app === src.app);   // unchanged since last check: skip the download
+    }
     const body = await (await gfetch(`${API}/${f.id}?alt=media`)).json();
     const items = extractUpcoming(src, body);
     const map = ids(); map[src.app] = f.id; LS.set('lp-ids', JSON.stringify(map));
-    state.sources[src.app] = { status: 'ok', modified: Date.parse(f.modifiedTime), count: items.length };
+    state.sources[src.app] = { status: 'ok', modified, count: items.length, fileId: f.id };
     return items;
   } catch (e) {
     if (e.session) throw e;
