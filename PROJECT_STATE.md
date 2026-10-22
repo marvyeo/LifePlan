@@ -12,6 +12,29 @@
 | Auth | Shared OAuth client `669494100250-…`. Scope `drive.file` first; "Grant read-only access" switches to `drive.readonly`. Redirect sign-in fallback for iPhone home-screen use (needs the URL in Authorized redirect URIs). |
 | Writes | **Nothing.** Read-only by design. |
 
+## ⚙ Session Rules (every chat that works on this app follows these)
+
+**1. Pick the cheapest model that can do the job.** At the start of every session Claude names the model it recommends and the estimated size (below). If the chat is on a pricier model than needed, Claude says so before starting.
+
+| Model | Use for |
+|---|---|
+| **Haiku** | State-file edits, text or label changes, small data packs, lookups, "where is X" questions |
+| **Sonnet** (default) | Features, bug fixes, refactors, data processing (e.g. novel volumes, PullList), most app work |
+| **Opus** | Only for new-app builds, cross-app architecture, or a bug Sonnet has failed on twice. Claude says why before using it |
+
+**2. Every push updates this file in the same commit.** No exceptions, including PR branches and one-line fixes.
+- `git pull` before starting, so you build on the latest state.
+- Add a dated line to the change log (what changed and why, in plain words) and update any section the change made wrong.
+- If a session ends without a push, nothing changes here.
+
+**3. Size the work first, and plan the pause points.**
+- Before starting, Claude lists the steps and sizes the job: **S** (under ~20k tokens), **M** (~20–60k), **L** (over ~60k).
+- **M and L jobs are split into checkpoints.** Each checkpoint ends with a commit and a state update, so a cut-off session loses nothing.
+- **Pause** when usage is around half the window, when the chat has grown long (heavy file reads, ~30+ turns), or before a step that won't finish in what's left. Claude can't see the remaining credit directly, so on L jobs it asks Marvin to check usage at each checkpoint.
+- **On pause,** Claude writes a `▶ RESUME HERE` block at the top of this file: what's done, the exact next step, branch and files, and the first command to run. It also gives Marvin a one-line restart prompt ("Continue <App> ver X from RESUME HERE"). The next session starts from that block and deletes it once the step is done.
+
+**4. Chat naming.** When this file starts a new chat, name it "<App> ver X" (X = previous + 1).
+
 ## Sources (config array `SOURCES` in index.html)
 | App | File | Notes |
 |---|---|---|
@@ -38,6 +61,9 @@ TV World (client `678456232174-…`) and MCC Inventory (client `676510183503-…
 
 ## Change log
 - **v1.0 (2026-10-21):** Initial build (Sprint 7).
+- **2026-10-21:** ecosystem icon set added (`design/`); VacationGuru glyph changed to a suitcase (the paper plane looked like Telegram).
+- **2026-10-22:** manifest id set to `/LifePlan/` (the old `./` made Android treat all apps as one).
+- **2026-10-22:** added Session Rules and `CLAUDE.md`. NovelReader's icons were generated from `design/make_icons.py` (glyph already defined) and shipped in its repo.
 
 ## Ecosystem icon set (2026-10-21)
 `design/make_icons.py` generates every app's icon in one style (dark tile, line glyph in the app colour, same stroke and safe zone). `python3 design/make_icons.py out` writes `out/<app>/icon-192.png`, `icon-512.png`, `apple-touch-icon.png` and `out/preview.png`. To add an app: add it to `APPS` (name, colour) and write a `g_<app>` glyph function.
