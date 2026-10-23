@@ -3,14 +3,14 @@
 > **Next chat name: `Life Plan Dashboard ver 4`**
 > Claude: your FIRST reply in a new chat must start with "Rename this chat to: **Life Plan Dashboard ver 3**" (you can't rename chats yourself). In your first commit this session, bump the number here by 1.
 
-**State version:** 3 (Sprints 13.4 Life Plan side and 13.5 built 2026-10-23, chat "Life Plan Dashboard ver 3"; v2 was 13.1, v1 the Sprint 7 build)
+**State version:** 3 (13.2/13.3 rollout noted 2026-10-23 from the Roadmap chat; Sprints 13.4 Life Plan side and 13.5 built 2026-10-23, chat "Life Plan Dashboard ver 3"; v2 was 13.1, v1 the Sprint 7 build)
 **Maintenance rule:** When ported to a new chat, name it "Life Plan Dashboard ver X". Update this file in the same commit as any change. `git pull` before working.
 
 | Item | Value |
 |---|---|
 | Repo | `marvyeo/LifePlan` (public) |
 | Live URL | https://marvyeo.github.io/LifePlan/ (demo data: `?demo`) |
-| Stack | `index.html` (vanilla JS, own CSS), `sw.js` (network-first, `lifeplan-v6`), `manifest.json`, `icons/` |
+| Stack | `index.html` (vanilla JS, own CSS), `sw.js` (network-first, `lifeplan-v7`), `manifest.json`, `icons/` |
 | Auth | Shared OAuth client `669494100250-…`. Scope `drive.file` first; "Grant read-only access" switches to `drive.readonly`. Redirect sign-in fallback for iPhone home-screen use (needs the URL in Authorized redirect URIs). |
 | Writes | **Nothing.** Read-only by design. |
 | Role | **Hub (Sprint 13).** Life Plan is the one installed app: launcher for all apps plus the due dashboard. Manifest `scope: "/"`, `start_url: "/LifePlan/"`, `id: "/LifePlan/"`. |
@@ -45,7 +45,7 @@
 - **Polish:** `viewport-fit=cover` with safe-area insets on header, nav and toast; `100dvh` for the sign-in screen and the sticky left pane; 44px touch targets on touch devices.
 - **Deep links (13.5, done):** due items and the Sources list open in the **same window** (no `target=_blank`). An item's `url` is used only if it is `https://marvyeo.github.io/...` (the field comes from a Drive file); otherwise it falls back to the app's page. Apps that want to land on the exact view put it in `url` (e.g. a hash) when they write `upcoming[]`; Life Plan passes it through unchanged.
 - **Shared sign-in (13.4, Life Plan side done):** all apps share the origin `https://marvyeo.github.io`, so localStorage is shared. Key `lp-sso` = `{t, exp, email, scope:'drive.file', client}`. Life Plan publishes it after sign-in and adopts it on open if its own token is missing or expired. Only a `drive.file` token for the shared client is ever shared (access is per OAuth client, so it works in any app on that client); the read-only token is never published. Sign out clears it; a 401 drops it.
-- **Still to do (13.2, 13.3 in the Roadmap chat; 13.4 app side):** "← Life Plan" button, iOS redirect sign-in and home-screen hint in each app. Each app on the shared client should read `lp-sso` before showing its sign-in (check `client` matches, `exp` is more than 60 s away, then use `t` as the bearer token) and write it after its own sign-in. TV World and MCC Inventory must move to the shared client first (below).
+- **Rolled out to the apps (2026-10-23, Roadmap chat ver 7):** TV World and MCC Inventory moved to the shared client; all five feed apps (TV World, MCC Inventory, ComicsTracker, Financial Planner, ChoreWheel) read and publish `lp-sso` and have the "← Life Plan" link, shared theme tokens (`--lp-bg/--lp-surface/--lp-text/--lp-muted/--lp-accent`), iOS redirect sign-in and an Add to Home Screen hint (TV World already had the redirect). **Sign out no longer revokes the Google token** in any app, Life Plan included: revoking on the shared client would cancel every app's file grants. Not tested live.
 
 ## Sources (config array `SOURCES` in index.html)
 | App | File | Notes |
@@ -69,7 +69,7 @@ TV World (client `678456232174-…`) and MCC Inventory (client `676510183503-…
 
 ## Open items
 - [x] Tile URLs confirmed by Marvin 2026-10-23 (FoodGuide, NovelReader, VacationGuru match the `HUB` array).
-- [ ] 13.4 app side: move TV World and MCC Inventory to the shared client and add `lp-sso` read/write (see above). Also add their Pages origin redirect URI if needed.
+- [x] 13.4 app side done 2026-10-23: TV World and MCC Inventory are on the shared client with a one-time file pick (TV World: "Pick my existing file"; MCC: "Pick the 3 files"). After that, Life Plan finds their files by name. Marvin and Caroline each do the pick once.
 - [ ] After 13.1 is live: Android clean reinstall (uninstall all apps, clear site data, install only Life Plan). This is roadmap checkpoint 13.6.
 - [ ] Marvin: enable Pages; add `https://marvyeo.github.io/LifePlan/` to Authorized redirect URIs (for iPhone).
 - [x] First run 2026-10-21: TV World and MCC Inventory not found (different OAuth projects). Resolution: Pick missing files.
@@ -82,6 +82,7 @@ TV World (client `678456232174-…`) and MCC Inventory (client `676510183503-…
 
 - **2026-10-23:** Sprint 13.1: hub shell (tile launcher, phone bottom nav, desktop two-pane, safe-area and 44px targets), manifest scope `/`, `sw.js` cache `lifeplan-v5` now also caches `icons/apps/`.
 - **2026-10-23:** Sprint 13.5: due items and Sources open in the same window; item `url` limited to marvyeo.github.io. Sprint 13.4 (Life Plan side): shared `lp-sso` sign-in token, `sw.js` cache `lifeplan-v6`.
+- **2026-10-23 (Roadmap chat ver 7):** Sign out no longer revokes the Google token (shared client: it would cancel every app's file grants). Rolled out `lp-sso`, back link, theme tokens and iOS fallback to the other apps. `sw.js` cache `lifeplan-v7`.
 
 ## Ecosystem icon set (2026-10-21)
 `design/make_icons.py` generates every app's icon in one style (dark tile, line glyph in the app colour, same stroke and safe zone). `python3 design/make_icons.py out` writes `out/<app>/icon-192.png`, `icon-512.png`, `apple-touch-icon.png` and `out/preview.png`. To add an app: add it to `APPS` (name, colour) and write a `g_<app>` glyph function.

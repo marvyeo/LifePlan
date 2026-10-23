@@ -407,7 +407,8 @@ function consumeRedirect() {
   keepToken(h.get('access_token'), h.get('expires_in'), h.get('scope') && h.get('scope').includes('drive.readonly') ? SCOPE_RO : scope);
   start(); waitForGsi(); return true;
 }
-function signOut() { try { google.accounts.oauth2.revoke(accessToken, () => {}); } catch (e) {} ['lp-token', 'lp-scope', 'lp-ids', 'lp-cache', SSO_KEY].forEach(LS.del); location.reload(); }
+// No token revoke: every app shares one OAuth client, and revoking would cancel the file grants for all of them.
+function signOut() { ['lp-token', 'lp-scope', 'lp-ids', 'lp-cache', SSO_KEY].forEach(LS.del); location.reload(); }
 function grantWider() {
   makeClient(SCOPE_RO);
   tokenClient.requestAccessToken({ prompt: 'consent' });
