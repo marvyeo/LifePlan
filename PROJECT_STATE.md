@@ -66,7 +66,7 @@ File lookup: id remembered per device, else newest file by name. "Pick missing f
 TV World (client `678456232174-…`) and MCC Inventory (client `676510183503-…`, full `drive` scope) aren't on the shared client, so under `drive.file` Life Plan can't find their files by name. Fix: **Pick missing files** once. The grant is stored with the Google account and works on every device. Moving those apps to the shared client isn't worth it, because they'd lose sight of their own existing files.
 
 ## Open items
-- [ ] **Confirm tile URLs** for FoodGuide (`/FoodGuide/`), NovelReader (`/NovelReader/`), VacationGuru (`/VacationGuru/`, not deployed). These were guessed from the repo naming pattern and could not be checked from the build session. Fix in the `HUB` array.
+- [x] Tile URLs confirmed by Marvin 2026-10-23 (FoodGuide, NovelReader, VacationGuru match the `HUB` array).
 - [ ] After 13.1 is live: Android clean reinstall (uninstall all apps, clear site data, install only Life Plan). This is roadmap checkpoint 13.6.
 - [ ] Marvin: enable Pages; add `https://marvyeo.github.io/LifePlan/` to Authorized redirect URIs (for iPhone).
 - [x] First run 2026-10-21: TV World and MCC Inventory not found (different OAuth projects). Resolution: Pick missing files.
