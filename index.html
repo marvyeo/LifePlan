@@ -241,13 +241,19 @@ function summaryLine(list) {
 }
 
 /* =============== RENDER =============== */
+// Due items open in this window (the hub is the installed app). Only links inside marvyeo.github.io are trusted,
+// since `url` comes from a Drive file; anything else falls back to the app's own page.
+function safeUrl(u, fallback) {
+  try { const x = new URL(u, location.href); if (x.protocol === 'https:' && x.origin === 'https://marvyeo.github.io') return x.href; } catch (e) {}
+  return fallback || '#';
+}
 function itemRow(it) {
   const icon = it.app === 'comicstracker' && it.type === 'release' ? '📚' : (TYPES[it.type] || ['•'])[0];
   const src = SOURCES.find(s => s.app === it.app);
   const color = `var(--c-${src ? it.app : 'other'})`;
-  const url = it.url || src?.url || '#';
+  const url = safeUrl(it.url, src?.url);
   const late = it.date < today();
-  return `<a class="item ${it.priority === 'high' ? 'high' : ''}" href="${esc(url)}" target="_blank" rel="noopener">
+  return `<a class="item ${it.priority === 'high' ? 'high' : ''}" href="${esc(url)}">
     <div class="ico" style="box-shadow:inset 0 0 0 1px ${color}">${icon}</div>
     <div class="body"><div class="label">${esc(it.label)}</div>
       <div class="meta"><span class="dot" style="background:${color}"></span>${esc(src?.name || it.app || 'Other')}${late ? ` · since ${parse(it.date).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}` : ''}${it.priority === 'high' ? ' <span class="badge">High</span>' : ''}</div></div>
@@ -312,10 +318,10 @@ function renderSources() {
     if (st.status === 'ok') {
       const age = daysAgo(st.modified);
       txt = `${st.count} item${st.count !== 1 ? 's' : ''} · saved ${age === 0 ? 'today' : age === 1 ? 'yesterday' : age + ' days ago'}`;
-      if (age > STALE_DAYS) { cls = 'stale'; txt += ` · stale, <a class="open" href="${s.url}" target="_blank" rel="noopener">open to refresh</a>`; }
+      if (age > STALE_DAYS) { cls = 'stale'; txt += ` · stale, <a class="open" href="${s.url}">open to refresh</a>`; }
     } else if (st.status === 'missing') { cls = 'err'; txt = 'File not found'; }
     else if (st.status === 'error') { cls = 'err'; txt = esc(st.error || 'Error'); }
-    return `<div class="src"><span class="dot" style="background:var(--c-${s.app})"></span><a href="${s.url}" target="_blank" rel="noopener">${esc(s.name)}</a><span class="st ${cls}">${txt}</span></div>`;
+    return `<div class="src"><span class="dot" style="background:var(--c-${s.app})"></span><a href="${s.url}">${esc(s.name)}</a><span class="st ${cls}">${txt}</span></div>`;
   }).join('');
   const missing = SOURCES.filter(s => state.sources[s.app]?.status === 'missing');
   return `<div class="sources"><h3>Sources</h3>${rows}</div>
@@ -335,13 +341,37 @@ let tokenClient, accessToken = null, scope = LS.get('lp-scope') || SCOPE_FILE;
 const savedTok = () => { try { return JSON.parse(LS.get('lp-token') || 'null'); } catch (e) { return null; } };
 function keepToken(t, expiresIn, sc) {
   accessToken = t; if (sc) { scope = sc; LS.set('lp-scope', sc); }
-  LS.set('lp-token', JSON.stringify({ t, exp: Date.now() + (Number(expiresIn) || 3599) * 1000, email: (savedTok() || {}).email || '' }));
+  const exp = Date.now() + (Number(expiresIn) || 3599) * 1000, email = (savedTok() || {}).email || '';
+  LS.set('lp-token', JSON.stringify({ t, exp, email }));
+  publishSso(t, exp, email);
+}
+// Shared sign-in. Every app lives on https://marvyeo.github.io, so localStorage is shared between them.
+// Key `lp-sso` = { t, exp, email, scope, client }. Only a drive.file token for the shared client is shared:
+// drive.file access is per OAuth client, so it works in any app on that client, and a wider token is never handed around.
+const SSO_KEY = 'lp-sso';
+function publishSso(t, exp, email) {
+  if (scope !== SCOPE_FILE) return;
+  LS.set(SSO_KEY, JSON.stringify({ t, exp, email: email || '', scope: SCOPE_FILE, client: CLIENT_ID }));
+}
+function readSso() {
+  try {
+    const x = JSON.parse(LS.get(SSO_KEY) || 'null');
+    return x && x.t && x.client === CLIENT_ID && x.scope === SCOPE_FILE ? x : null;
+  } catch (e) { return null; }
+}
+function adoptSso() {
+  if (scope !== SCOPE_FILE) return false;      // Life Plan has the wider read-only grant: keep it
+  const x = readSso();
+  if (!x || x.exp <= Date.now() + 60000) return false;
+  accessToken = x.t; LS.set('lp-token', JSON.stringify({ t: x.t, exp: x.exp, email: x.email || (savedTok() || {}).email || '' }));
+  return true;
 }
 function initAuth() {
   if (DEMO) { loadDemo(); return; }
   if (consumeRedirect()) return;
   const tok = savedTok();
   if (tok && tok.t && tok.exp > Date.now() + 60000) { accessToken = tok.t; start(); }
+  else if (adoptSso()) start();                 // signed in through another app: no second sign-in
   waitForGsi();
 }
 function waitForGsi() {
@@ -377,14 +407,14 @@ function consumeRedirect() {
   keepToken(h.get('access_token'), h.get('expires_in'), h.get('scope') && h.get('scope').includes('drive.readonly') ? SCOPE_RO : scope);
   start(); waitForGsi(); return true;
 }
-function signOut() { try { google.accounts.oauth2.revoke(accessToken, () => {}); } catch (e) {} ['lp-token', 'lp-scope', 'lp-ids', 'lp-cache'].forEach(LS.del); location.reload(); }
+function signOut() { try { google.accounts.oauth2.revoke(accessToken, () => {}); } catch (e) {} ['lp-token', 'lp-scope', 'lp-ids', 'lp-cache', SSO_KEY].forEach(LS.del); location.reload(); }
 function grantWider() {
   makeClient(SCOPE_RO);
   tokenClient.requestAccessToken({ prompt: 'consent' });
 }
 async function gfetch(url) {
   const r = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-  if (r.status === 401) { const t = savedTok(); if (t) { t.exp = 0; LS.set('lp-token', JSON.stringify(t)); } accessToken = null; authScreen('Your Google session timed out. Tap to continue.'); throw Object.assign(new Error('session'), { session: true }); }
+  if (r.status === 401) { const t = savedTok(); if (t) { t.exp = 0; LS.set('lp-token', JSON.stringify(t)); } accessToken = null; const sso = readSso(); if (sso && sso.t === (t && t.t)) LS.del(SSO_KEY); authScreen('Your Google session timed out. Tap to continue.'); throw Object.assign(new Error('session'), { session: true }); }
   if (r.status === 404) throw Object.assign(new Error('not found'), { notFound: true });
   if (!r.ok) throw new Error(`Drive ${r.status}`);
   return r;
@@ -442,7 +472,7 @@ async function refresh(manual) {
 }
 async function start() {
   document.getElementById('auth').classList.add('hidden');
-  try { const me = await (await gfetch('https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)')).json(); const t = savedTok() || {}; t.email = me.user?.emailAddress || ''; LS.set('lp-token', JSON.stringify(t)); } catch (e) { if (e.session) return; }
+  try { const me = await (await gfetch('https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)')).json(); const t = savedTok() || {}; t.email = me.user?.emailAddress || ''; LS.set('lp-token', JSON.stringify(t)); publishSso(t.t, t.exp, t.email); } catch (e) { if (e.session) return; }
   refresh();
 }
 function pickMissing() {
